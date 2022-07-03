@@ -1,0 +1,75 @@
+name: Build and Push Image
+
+on:
+  push:
+    branches: [ masin ]
+  pull_request:
+    branches: [ masin ]
+
+env:
+  BUILD_CONFIGURATION: 'Release'    # set this to the appropriate build configuration
+  DOTNET_VERSION: '6.0.x' 
+  CONTAINER_REGISTRY: 'acrxhagua.azurecr.io'
+  CONTAINER_REPOSITORY: 'xhagua-aks-backend'
+  PUBLISH_FOLDER: 'publish'
+
+defaults:
+  run:
+    working-directory: ./src
+    
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        include-prerelease: true
+
+    - name: Install GitVersion
+      uses: gittools/gitversion/@setup@v0.9.7
+      with:
+        versionSpec: '5.x'
+
+    - name: Setup GitVersion
+      uses: gittools/gitversion/@execute@v0.9.7
+      id: gitversion
+
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --no-restore --configuration '${{ env.BUILD_CONFIGURATION }}' -p:GeneratePackageOnBuild=false
+  
+    - name: Publish API
+      run: dotnet publish 'Xhagua.Aks.Backend.Api/Xhagua.Aks.Backend.Api.csproj' --no-build --configuration '${{ env.BUILD_CONFIGURATION }}' --output './../${{PUBLISH_FOLDER}}'
+    
+    - name: Login to Azure Container Registry 
+      uses: azure/docker-login@v1
+      with:
+          login-server: ${{ env.CONTAINER_REGISTRY }}
+          username: 'acrxhagua'
+          password: 'W2m1yKP1ymPfHxJ/gjMQt2H1+kS+mi3u'
+      
+    - name: Push to Azure Container Registry
+      if: github.ref == 'refs/heads/main' &&steps.gitversion.outputs.CommitsSinceVersionSource > 0
+      run: |
+          image_tag=${{env.CONTAINER_REPOSITORY}}:${{ steps.gitversion.outputs.nuGetVersionV2 }}
+          docker build --build-arg SOURCE_FOLDER=./${{PUBLISH_FOLDER}}/ -f docker/Dockerfile . -t ${{env.CONTAINER_REGISTRY}}/${{image_tag}}
+          docker push ${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:${{image_tag}}
+      working-directory: ./
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      if: github.ref == 'refs/heads/main' &&steps.gitversion.outputs.CommitsSinceVersionSource > 0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.gitversion.outputs.nuGetVersionV2 }}
+        release_name: Release ${{ steps.gitversion.outputs.nuGetVersionV2 }}
