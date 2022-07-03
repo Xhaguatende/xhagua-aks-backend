@@ -49,7 +49,7 @@ jobs:
       run: dotnet build --no-restore --configuration '${{ env.BUILD_CONFIGURATION }}' -p:GeneratePackageOnBuild=false
   
     - name: Publish API
-      run: dotnet publish 'Xhagua.Aks.Backend.Api/Xhagua.Aks.Backend.Api.csproj' --no-build --configuration '${{ env.BUILD_CONFIGURATION }}' --output './../${{PUBLISH_FOLDER}}'
+      run: dotnet publish 'Xhagua.Aks.Backend.Api/Xhagua.Aks.Backend.Api.csproj' --no-build --configuration '${{ env.BUILD_CONFIGURATION }}' --output './../${{env.PUBLISH_FOLDER}}'
     
     - name: Login to Azure Container Registry 
       uses: azure/docker-login@v1
@@ -62,7 +62,7 @@ jobs:
       if: github.ref == 'refs/heads/main' &&steps.gitversion.outputs.CommitsSinceVersionSource > 0
       run: |
           image_tag=${{env.CONTAINER_REPOSITORY}}:${{ steps.gitversion.outputs.nuGetVersionV2 }}
-          docker build --build-arg SOURCE_FOLDER=./${{PUBLISH_FOLDER}}/ -f docker/Dockerfile . -t ${{env.CONTAINER_REGISTRY}}/${{image_tag}}
+          docker build --build-arg SOURCE_FOLDER=./${{env.PUBLISH_FOLDER}}/ -f docker/Dockerfile . -t ${{env.CONTAINER_REGISTRY}}/${{image_tag}}
           docker push ${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:${{image_tag}}
       working-directory: ./
       
