@@ -34,6 +34,6 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Install GitVersion
-      uses: gittools/gitversion/setup@v0.9.7
+      uses: gittools/actions/gitversion/setup@v0.9.7
       with:
         versionSpec: '5.x'
