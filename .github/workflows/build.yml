@@ -63,7 +63,7 @@ jobs:
       run: |
           image_tag=${{env.CONTAINER_REPOSITORY}}:${{ steps.gitversion.outputs.nuGetVersionV2 }}
           docker build --build-arg SOURCE_FOLDER=./${{env.PUBLISH_FOLDER}}/ -f docker/Dockerfile . -t ${{env.CONTAINER_REGISTRY}}/${image_tag}
-          docker push ${{env.CONTAINER_REGISTRY}}/${{env.CONTAINER_REPOSITORY}}:${image_tag}
+          docker push ${{env.CONTAINER_REGISTRY}}/${image_tag}
       working-directory: ./
       
     - name: Create Release
